@@ -1,1 +1,248 @@
 # activiaTUI
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACTIVA NODUS PARTICEPS</title>
+    <style>
+        :root {
+            --glow-color: #00ff66;
+            --bg-color: #050f08;
+            --panel-bg: #0a1a0f;
+            --text-muted: #00aa44;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--glow-color);
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* CRT Scanline Effect Overlay */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 9999;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px double var(--glow-color);
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 5px var(--glow-color);
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 15px;
+            flex-grow: 1;
+            min-height: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--text-muted);
+            padding: 10px;
+            text-align: center;
+            box-shadow: inset 0 0 5px rgba(0, 255, 102, 0.1);
+        }
+
+        .stat-card label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-card span {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 0 3px var(--glow-color);
+        }
+
+        .console-wrapper {
+            border: 1px solid var(--glow-color);
+            background: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.05);
+        }
+
+        .console-header {
+            background: var(--glow-color);
+            color: var(--bg-color);
+            padding: 4px 10px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .console-logs {
+            padding: 10px;
+            overflow-y: auto;
+            flex-grow: 1;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll for Android Chrome */
+        }
+
+        .log-item {
+            line-height: 1.4;
+            word-break: break-all;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        .log-ok { color: var(--glow-color); }
+        .log-meta { color: #00bbff; }
+        .log-ping { color: #ffcc00; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ACTIVA NODUS PARTICEPS</h1>
+        <p>Coniunge et auge</p>
+    </header>
+
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <label>Active Nodes</label>
+                <span id="node-count">1,024</span>
+            </div>
+            <div class="stat-card">
+                <label>Network Load</label>
+                <span id="net-load">42%</span>
+            </div>
+            <div class="stat-card">
+                <label>Global Ping</label>
+                <span id="avg-ping">28ms</span>
+            </div>
+        </div>
+
+        <div class="console-wrapper">
+            <div class="console-header">
+                <span>LIVE CORE STREAM</span>
+                <span id="sys-status">SYS_ONLINE</span>
+            </div>
+            <ul class="console-logs" id="log-container">
+                <li class="log-item log-ok">[SYSTEM] Initializing Retis Participium...</li>
+                <li class="log-item log-ok">[SYSTEM] Operational protocols active.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const logContainer = document.getElementById('log-container');
+        const nodeCountEl = document.getElementById('node-count');
+        const netLoadEl = document.getElementById('net-load');
+        const avgPingEl = document.getElementById('avg-ping');
+
+        let totalNodes = 1024;
+
+        // Generate clean mock Hex IDs
+        function generateNodeId() {
+            const chars = '0123456789ABCDEF';
+            let id = '0x';
+            for (let i = 0; i < 4; i++) {
+                id += chars[Math.floor(Math.random() * 16)];
+            }
+            return id;
+        }
+
+        // Add a live log entry using your fluid phrase
+        function streamPingLog() {
+            const nodeId = generateNodeId();
+            const latency = Math.floor(Math.random() * 41) + 10; // 10ms - 50ms
+
+            const li = document.createElement('li');
+            li.className = 'log-item';
+            
+            li.innerHTML = `
+                <span class="log-ok">[OK] Activa nodum participem...</span> 
+                <span class="log-meta">[NODE_ID: ${nodeId}]</span> 
+                <span class="log-ping">[PING: ${latency}ms]</span>
+            `;
+
+            logContainer.appendChild(li);
+
+            // Limit log memory size so it runs infinitely without crashing mobile Chrome
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+
+            // Keep scrolling pinned to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // Dynamically alter dashboard data slightly to make it look alive
+            updateMetrics(latency);
+        }
+
+        function updateMetrics(lastPing) {
+            // Chance to shift metrics slightly
+            if (Math.random() > 0.6) {
+                totalNodes += Math.random() > 0.5 ? 1 : -1;
+                nodeCountEl.textContent = totalNodes.toLocaleString();
+                
+                const currentLoad = Math.floor(Math.random() * 20) + 35; // 35% - 55%
+                netLoadEl.textContent = `${currentLoad}%`;
+                
+                avgPingEl.textContent = `${Math.floor((lastPing + 28) / 2)}ms`;
+            }
+        }
+
+        // Run the dynamic loop every 1.2 seconds (perfect pace for mobile reading)
+        setInterval(streamPingLog, 1200);
+    </script>
+</body>
+</html>
